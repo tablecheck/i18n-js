@@ -1,3 +1,8 @@
+require "yaml"
+require "i18n"
+require "fileutils"
+require "i18n/js/utils"
+
 module I18n
 module JS
 
@@ -24,17 +29,6 @@ module JS
       translation_segments.each(&:save!)
     end
 
-    def self.segments_per_locale(pattern, scope, exceptions, options)
-      I18n.available_locales.each_with_object([]) do |locale, segments|
-        scope = [scope] unless scope.respond_to?(:each)
-        result = scoped_translations(scope.collect{|s| "#{locale}.#{s}"}, exceptions)
-        merge_with_fallbacks!(result, locale, scope, exceptions) if use_fallbacks?
-
-        next if result.empty?
-        segments << Segment.new(::I18n.interpolate(pattern, {:locale => locale}), result, options)
-      end
-    end
-
     def self.segment_for_scope(scope, exceptions)
       if scope == "*"
         exclude(translations, exceptions)
@@ -51,23 +45,24 @@ module JS
 
         segment_options = options.slice(:namespace, :pretty_print)
 
-        if file =~ ::I18n::INTERPOLATION_PATTERN
-          segments += segments_per_locale(file, only, exceptions, segment_options)
-        else
-          result = segment_for_scope(only, exceptions)
-          segments << Segment.new(file, result, segment_options) unless result.empty?
-        end
+        result = segment_for_scope(only, exceptions)
+
+        merge_with_fallbacks!(result) if fallbacks
+
+        segments << Segment.new(file, result, segment_options) unless result.empty?
 
         segments
       end
     end
 
     def self.filtered_translations
-      {}.tap do |result|
+      translations = {}.tap do |result|
         translation_segments.each do |segment|
           Utils.deep_merge!(result, segment.translations)
         end
       end
+      return Utils.deep_key_sort(translations) if I18n::JS::Exporter.sort_translation_keys?
+      translations
     end
 
     def self.translation_segments
@@ -99,9 +94,9 @@ module JS
 
       [scopes].flatten.each do |scope|
         translations_without_exceptions = exclude(translations, exceptions)
-        filtered_translations = filter(translations_without_exceptions, scope)
+        filtered_translations = filter(translations_without_exceptions, scope) || {}
 
-        Utils.deep_merge! result, filtered_translations
+        Utils.deep_merge!(result, filtered_translations)
       end
 
       result
@@ -112,8 +107,9 @@ module JS
       return translations if exceptions.empty?
 
       exceptions.inject(translations) do |memo, exception|
-        Utils.deep_reject(memo) do |key, value|
-          key.to_s == exception.to_s
+        exception_scopes = exception.to_s.split(".")
+        Utils.deep_reject(memo) do |key, value, scopes|
+          Utils.scopes_match?(scopes, exception_scopes)
         end
       end
     end
@@ -156,14 +152,23 @@ module JS
       end
     end
 
-    # deep_merge! given result with result for fallback locale
-    def self.merge_with_fallbacks!(result, locale, scope, exceptions)
-      result[locale] ||= {}
-      fallback_locales = FallbackLocales.new(fallbacks, locale)
+    def self.sort_translation_keys?
+      @sort_translation_keys ||= (config[:sort_translation_keys]) if config.has_key?(:sort_translation_keys)
+      @sort_translation_keys = true if @sort_translation_keys.nil?
+      @sort_translation_keys
+    end
 
-      fallback_locales.each do |fallback_locale|
-        fallback_result = scoped_translations(scope.collect{|s| "#{fallback_locale}.#{s}"}, exceptions) # NOTE: Duplicated code here
-        result[locale] = Utils.deep_merge(fallback_result[fallback_locale], result[locale])
+    def self.sort_translation_keys=(value)
+      @sort_translation_keys = !!value
+    end
+
+    # deep_merge! given result with result for fallback locale
+    def self.merge_with_fallbacks!(result)
+      I18n.available_locales.each do |locale|
+        fallback_locales = FallbackLocales.new(fallbacks, locale)
+        fallback_locales.each do |fallback_locale|
+          result[locale] = Utils.deep_merge(result[fallback_locale], result[locale] || {})
+        end
       end
     end
 

@@ -1,7 +1,8 @@
 # I18n.js
 
-[![Build Status](https://travis-ci.org/fnando/i18n-js.svg?branch=master)](https://travis-ci.org/fnando/i18n-js)
-[![Code Climate](https://codeclimate.com/github/fnando/i18n-js.png)](https://codeclimate.com/github/fnando/i18n-js)
+[![Build Status](http://img.shields.io/travis/fnando/i18n-js.svg?style=flat-square)](https://travis-ci.org/fnando/i18n-js)
+[![Code Climate](http://img.shields.io/codeclimate/github/fnando/i18n-js.svg?style=flat-square)](https://codeclimate.com/github/fnando/i18n-js)
+[![Gitter](https://img.shields.io/badge/gitter-join%20chat-1dce73.svg?style=flat-square)](https://gitter.im/fnando/i18n-js)
 
 It's a small library to provide the Rails I18n translations on the JavaScript.
 
@@ -38,6 +39,8 @@ then you must add the following line to your `app/assets/javascripts/application
 // This is optional (in case you have `I18n is not defined` error)
 // If you want to put this line, you must put it BEFORE `i18n/translations`
 //= require i18n
+// Some people even need to add the extension to make it work, see https://github.com/fnando/i18n-js/issues/283
+//= require i18n.js
 //
 // This is a must
 //= require i18n/translations
@@ -97,7 +100,7 @@ translations:
 - file: "public/javascripts/i18n/%{locale}.js"
   only: '*'
 - file: "public/javascripts/frontend/i18n/%{locale}.js"
-  only: ['frontend', 'users']
+  only: ['*.frontend', '*.users.*']
 ```
 
 You can also include ERB in your config file.
@@ -116,7 +119,7 @@ keys listed in `except` configuration param:
 
 ```yaml
 translations:
-  - except: ['active_admin', 'ransack']
+  - except: ['*.active_admin', '*.ransack', '*.activerecord.errors']
 ```
 
 
@@ -134,12 +137,21 @@ translations:
   - Any `String`: considered as a relative path for a folder to `Rails.root` and export `i18n.js` to that folder for `rake i18n:js:export`
   - Any non-`String` (`nil`, `false`, `:none`, etc): Disable `i18n.js` exporting
 
-- You may also set `export_i18n_js` in your config file, e.g.:
+- `I18n::JS.sort_translation_keys`
+  Expected Type: `Boolean`
+  Default: `true`
+  Behaviour:
+  - Sets whether or not to deep sort all translation keys in order to generate identical output for the same translations
+  - Set to true to ensure identical asset fingerprints for the asset pipeline
+
+- You may also set `export_i18n_js` and `sort_translation_keys` in your config file, e.g.:
 
 ```yaml
 export_i18n_js_: false
 # OR
 export_i18n_js: "my/path"
+
+sort_translation_keys: false
 
 translations:
   - ...
@@ -358,14 +370,21 @@ becomes "what is your favorite Christmas present"
 
 In order to still detect untranslated strings, you can
 i18n.missingTranslationPrefix to something like:
-
-  I18n.missingTranslationPrefix = 'EE: '
+```javascript
+I18n.missingTranslationPrefix = 'EE: ';
+```
 
 And result will be:
-
-    "EE: what is your favorite Christmas present"
+```javascript
+"EE: what is your favorite Christmas present"
+```
 
 This will help you doing automated tests against your localisation assets.
+
+Some people prefer returning `null` for missing translation:
+```javascript
+I18n.missingTranslation = function () { return undefined; };
+```
 
 Pluralization is possible as well and by default provides English rules:
 

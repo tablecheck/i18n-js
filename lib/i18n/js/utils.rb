@@ -22,11 +22,28 @@ module I18n
         target_hash.merge!(hash, &MERGER)
       end
 
-      def self.deep_reject(hash, &block)
+      def self.deep_reject(hash, scopes = [], &block)
         hash.each_with_object({}) do |(k, v), memo|
-          unless block.call(k, v)
-            memo[k] = v.kind_of?(Hash) ? deep_reject(v, &block) : v
+          unless block.call(k, v, scopes + [k.to_s])
+            memo[k] = v.kind_of?(Hash) ? deep_reject(v, scopes + [k.to_s], &block) : v
           end
+        end
+      end
+
+      def self.scopes_match?(scopes1, scopes2)
+        if scopes1.length == scopes2.length
+          [scopes1, scopes2].transpose.all? do |scope1, scope2|
+            scope1.to_s == '*' || scope2.to_s == '*' || scope1.to_s == scope2.to_s
+          end
+        end
+      end
+
+      def self.deep_key_sort(hash)
+        # Avoid things like `true` or `1` from YAML which causes error
+        hash.keys.sort {|a, b| a.to_s <=> b.to_s}.
+          each_with_object({}) do |key, seed|
+          value = hash[key]
+          seed[key] = value.is_a?(Hash) ? deep_key_sort(value) : value
         end
       end
     end

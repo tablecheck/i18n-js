@@ -1,9 +1,28 @@
 
 ## Unreleased
 
+### breaking changes
+
 ### enhancements
 
 ### bug fixes
+
+
+## 3.0.0.rc10
+
+### breaking changes
+
+- [Ruby] In `config/i18n-js.yml`, if you are using `%{locale}` in your filename and are referencing specific translations keys, please add `*.` to the beginning of those keys. ([#320](https://github.com/fnando/i18n-js/pull/320))
+- [Ruby] The `:except` option to exclude certain phrases now (only) accepts the same patterns the `:only` option accepts
+
+### enhancements
+
+- [Ruby] Make handling of per-locale and not-per-locale exporting to be more consistent ([#320](https://github.com/fnando/i18n-js/pull/320))
+- [Ruby] Add option `sort_translation_keys` to sort translation keys alphabetically ([#318](https://github.com/fnando/i18n-js/pull/318))
+
+### bug fixes
+
+- [Ruby] Fix fallback logic to work with not-per-locale files ([#320](https://github.com/fnando/i18n-js/pull/320))
 
 
 ## 3.0.0.rc9
@@ -25,6 +44,7 @@
 ### bug fixes
 
 - [JS] Fix missing translation message when scope is passed in options
+- [Ruby] Fix save cache directory verification when path is a symbolic link ([#329](https://github.com/fnando/i18n-js/pull/329))
 
 
 ## 3.0.0.rc8
