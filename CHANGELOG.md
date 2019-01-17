@@ -7,7 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Nothing
+- [Ruby] Add `exclude` option as an alias for `except` and deprecate `except`
 
 ### Changed
 
