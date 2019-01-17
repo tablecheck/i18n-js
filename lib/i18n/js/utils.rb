@@ -1,10 +1,18 @@
 module I18n
   module JS
     module Utils
+      PLURAL_KEYS = %i[zero one two few many other].freeze
+
       # deep_merge by Stefan Rusterholz, see <http://www.ruby-forum.com/topic/142809>.
       # The last result is modified to treat `nil` as missing key
       MERGER = proc do |_key, v1, v2|
-        Hash === v1 && Hash === v2 ? v1.merge(v2, &MERGER) : (v2.nil? ? v1 : v2)
+        if Hash === v2 && (v2.keys - PLURAL_KEYS).empty?
+          v2
+        elsif Hash === v1 && Hash === v2
+          v1.merge(v2, &MERGER)
+        else
+          v2.nil? ? v1 : v2
+        end
       end
 
       HASH_NIL_VALUE_CLEANER_PROC = proc do |k, v|
