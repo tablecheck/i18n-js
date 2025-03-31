@@ -31,8 +31,7 @@ module I18n
                     fail ArgumentError, "fallbacks must be: true, :default_locale an Array or a Hash - given: #{fallbacks}"
                   end
 
-        locales.map! { |locale| locale.to_sym }
-        locales
+        locales.map(&:to_sym)
       end
 
       private
